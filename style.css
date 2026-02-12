@@ -1,0 +1,54 @@
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f0f4f8;
+  margin: 0;
+  display: flex;
+}
+
+#sidebar {
+  width: 200px;
+  background-color: #2c3e50;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+#sidebar button {
+  background-color: #34495e;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin: 5px 0;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: 0.2s;
+}
+
+#sidebar button:hover {
+  background-color: #1abc9c;
+}
+
+#sidebar button.active {
+  background-color: #e67e22;
+}
+
+#main {
+  flex-grow: 1;
+  padding: 20px;
+}
+
+.country-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.country-card img {
+  width: 150px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+}

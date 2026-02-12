@@ -4,35 +4,26 @@
   <meta charset="UTF-8">
   <title>地理系お助けサイト</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Leaflet 地図ライブラリ（必要なら） -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
-<div id="content">
-  <h1>地理系お助けサイト</h1>
-  <p>YouTube公開用 日本向け版</p>
+<div id="sidebar">
+  <button id="btnMap" class="active" onclick="showMap()">地図</button>
+  <button id="btnRandomCountry" onclick="randomCountry()">ランダム国</button>
+  <button id="btnRandomPrefecture" onclick="randomPrefecture()">ランダム都道府県</button>
+  <button id="btnSearch" onclick="showSearch()">国検索</button>
+</div>
 
-  <!-- ボタン群 -->
-  <button onclick="randomCountry()">ランダム国</button>
-  <button onclick="randomPrefecture()">ランダム都道府県</button>
-  <button onclick="showSearch()">国検索</button>
-  <button onclick="showMap()">地図表示</button>
-
-  <!-- 検索用入力 -->
-  <div id="searchDiv" style="margin-top:10px;">
+<div id="main">
+  <div id="result"></div>
+  <div id="searchDiv" style="display:none;margin-top:10px;">
     <input type="text" id="searchInput" placeholder="国名または旧国を入力">
     <button onclick="searchCountry()">検索</button>
   </div>
-
-  <!-- 結果表示 -->
-  <div id="result" style="margin-top:20px;"></div>
 </div>
 
-<!-- Leaflet JS（必要なら） -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- メインJS -->
 <script src="script.js"></script>
 </body>
 </html>

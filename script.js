@@ -1,6 +1,6 @@
 // ===============================
 // 地理系お助けサイト 完全版
-// GitHub Pages 安定対応
+// GitHub Pages 安定対応＋UI改善
 // ===============================
 
 // ===== 日本語正規化 =====
@@ -68,10 +68,55 @@ function displayCountry(country) {
 
   document.getElementById("result").innerHTML = `
     <div class="country-card">
-      <img src="${flag}" alt="flag" style="width:150px;border:1px solid #ccc;margin-bottom:10px;">
+      <img src="${flag}" alt="flag">
       <h2>${nameJP}</h2>
       <p><strong>正式名:</strong> ${official}</p>
       <p><strong>面積:</strong> ${area} km²</p>
       <p><strong>人口:</strong> ${population}</p>
       <p><strong>通貨:</strong> ${currency}</p>
     </div>
+  `;
+}
+
+// ===============================
+// 国検索（日本語対応）
+// ===============================
+async function searchCountry() {
+  const input = document.getElementById("searchInput").value;
+  const normalized = normalizeText(input);
+
+  try {
+    const res = await fetch(
+      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags"
+    );
+    if (!res.ok) throw new Error("API取得失敗");
+    const data = await res.json();
+
+    const found = data.find(c => {
+      const jp = normalizeText(c.translations?.jpn?.common || "");
+      const en = normalizeText(c.name?.common || "");
+      return jp.includes(normalized) || en.includes(normalized);
+    });
+
+    if (found) {
+      displayCountry(found);
+    } else {
+      document.getElementById("result").innerHTML = "<p>国が見つかりませんでした。</p>";
+    }
+  } catch (err) {
+    document.getElementById("result").innerHTML = "<p>検索中にエラー発生</p>";
+    console.error(err);
+  }
+}
+
+// ===============================
+// サイドバーボタン切替
+// ===============================
+function setActiveButton(btnId) {
+  document.querySelectorAll('#sidebar button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(btnId).classList.add('active');
+}
+
+function randomRegion() { setActiveButton('btnRandomCountry'); randomCountry(); }
+function showSearch() { setActiveButton('btnSearch'); document.getElementById('searchDiv').style.display = 'block'; document.getElementById('result').innerHTML = ''; }
+function showMap() { setActiveButton('btnMap'); document.getElementById('searchDiv').style.display = 'none'; document.getElementById('result').innerHTML = "<p>マップ機能は今後追加予定です。</p>"; }
