@@ -1,12 +1,9 @@
-let map;
-const content = document.getElementById("content");
-
 // ===============================
-// 地理系お助けサイト 完全強化版
-// 国旗付き・日本語検索対応
+// 地理系お助けサイト 安定版
+// GitHub Pages対応 完全修正版
 // ===============================
 
-// ===== 文字正規化（日本語対応） =====
+// ===== 文字正規化（ひらがな→カタカナ対応） =====
 function normalizeText(text) {
   return text
     .toLowerCase()
@@ -39,38 +36,55 @@ function randomPrefecture() {
     Math.floor(Math.random() * japanPrefectures.length)
   ];
 
-  document.getElementById("result").innerHTML = `
-    <h2>${random}</h2>
-  `;
+  document.getElementById("result").innerHTML =
+    `<h2>${random}</h2>`;
 }
 
 // ===============================
-// ランダム国（全世界）
+// ランダム国（API安定版）
 // ===============================
 
 async function randomCountry() {
-  const res = await fetch("https://restcountries.com/v3.1/all");
-  const data = await res.json();
-  const country = data[Math.floor(Math.random() * data.length)];
+  try {
+    const res = await fetch(
+      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags"
+    );
 
-  displayCountry(country);
+    if (!res.ok) throw new Error("API取得失敗");
+
+    const data = await res.json();
+    const country = data[Math.floor(Math.random() * data.length)];
+
+    displayCountry(country);
+
+  } catch (error) {
+    document.getElementById("result").innerHTML =
+      "<p>国データの取得に失敗しました。</p>";
+    console.error(error);
+  }
 }
 
 // ===============================
-// 国表示（国旗付き）
+// 国表示（安全処理付き）
 // ===============================
 
 function displayCountry(country) {
-  const nameJP = country.translations?.jpn?.common || country.name.common;
-  const official = country.name.official;
+  if (!country) {
+    document.getElementById("result").innerHTML =
+      "<p>データが見つかりません。</p>";
+    return;
+  }
+
+  const nameJP = country.translations?.jpn?.common || country.name?.common || "不明";
+  const official = country.name?.official || "不明";
   const area = country.area ? country.area.toLocaleString() : "不明";
   const population = country.population ? country.population.toLocaleString() : "不明";
   const currency = Object.values(country.currencies || {})[0]?.name || "不明";
-  const flag = country.flags?.svg || country.flags?.png;
+  const flag = country.flags?.svg || country.flags?.png || "";
 
   document.getElementById("result").innerHTML = `
     <div class="country-card">
-      <img src="${flag}" alt="flag" style="width:150px; border:1px solid #ccc; margin-bottom:10px;">
+      <img src="${flag}" alt="flag" style="width:150px;border:1px solid #ccc;margin-bottom:10px;">
       <h2>${nameJP}</h2>
       <p><strong>正式名:</strong> ${official}</p>
       <p><strong>面積:</strong> ${area} km²</p>
@@ -88,49 +102,48 @@ async function searchCountry() {
   const input = document.getElementById("searchInput").value;
   const normalized = normalizeText(input);
 
-  const res = await fetch("https://restcountries.com/v3.1/all");
-  const data = await res.json();
+  try {
+    const res = await fetch(
+      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags"
+    );
 
-  const found = data.find(c => {
-    const jp = normalizeText(c.translations?.jpn?.common || "");
-    const en = normalizeText(c.name.common);
-    return jp.includes(normalized) || en.includes(normalized);
-  });
+    if (!res.ok) throw new Error("API取得失敗");
 
-  if (found) {
-    displayCountry(found);
-  } else {
+    const data = await res.json();
+
+    const found = data.find(c => {
+      const jp = normalizeText(c.translations?.jpn?.common || "");
+      const en = normalizeText(c.name?.common || "");
+      return jp.includes(normalized) || en.includes(normalized);
+    });
+
+    if (found) {
+      displayCountry(found);
+    } else {
+      document.getElementById("result").innerHTML =
+        "<p>国が見つかりませんでした。</p>";
+    }
+
+  } catch (error) {
     document.getElementById("result").innerHTML =
-      "<p>国が見つかりませんでした。</p>";
+      "<p>検索中にエラーが発生しました。</p>";
+    console.error(error);
   }
 }
 
 // ===============================
-// 世界の州取得
+// 仮のナビ用関数（エラー防止）
 // ===============================
 
-async function searchState() {
-  const countryName = document.getElementById("searchInput").value;
+function randomRegion() {
+  randomCountry();
+}
 
-  const res = await fetch("https://countriesnow.space/api/v0.1/countries/states", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ country: countryName })
-  });
+function showSearch() {
+  document.getElementById("content").style.display = "block";
+}
 
-  const data = await res.json();
-
-  if (data.data && data.data.states.length > 0) {
-    const statesList = data.data.states
-      .map(s => `<li>${s.name}</li>`)
-      .join("");
-
-    document.getElementById("result").innerHTML = `
-      <h2>${countryName} の州一覧</h2>
-      <ul>${statesList}</ul>
-    `;
-  } else {
-    document.getElementById("result").innerHTML =
-      "<p>州データが見つかりませんでした。</p>";
-  }
+function showMap() {
+  document.getElementById("result").innerHTML =
+    "<p>マップ機能は今後アップデート予定です。</p>";
 }
