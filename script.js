@@ -1,6 +1,6 @@
 // ===============================
 // 地理系お助けサイト 完全版
-// GitHub Pages 安定対応＋UI改善
+// ランダム国・都道府県・国検索・地図表示対応
 // ===============================
 
 // ===== 日本語正規化 =====
@@ -101,7 +101,7 @@ async function searchCountry() {
     if (found) {
       displayCountry(found);
     } else {
-      document.getElementById("result").innerHTML = "<p>国が見つかりませんでした。</p>";
+      document.getElementById("result").innerHTML = "<p>国が見つかりませんでした</p>";
     }
   } catch (err) {
     document.getElementById("result").innerHTML = "<p>検索中にエラー発生</p>";
@@ -117,6 +117,30 @@ function setActiveButton(btnId) {
   document.getElementById(btnId).classList.add('active');
 }
 
+// ===============================
+// 地図初期化
+// ===============================
+let map;
+function initMap() {
+  if (map) return; // 既に初期化済みなら何もしない
+  map = L.map('map').setView([20, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+}
+
+// ===============================
+// モード切替
+// ===============================
 function randomRegion() { setActiveButton('btnRandomCountry'); randomCountry(); }
-function showSearch() { setActiveButton('btnSearch'); document.getElementById('searchDiv').style.display = 'block'; document.getElementById('result').innerHTML = ''; }
-function showMap() { setActiveButton('btnMap'); document.getElementById('searchDiv').style.display = 'none'; document.getElementById('result').innerHTML = "<p>マップ機能は今後追加予定です。</p>"; }
+function showSearch() {
+  setActiveButton('btnSearch');
+  document.getElementById('searchDiv').style.display = 'block';
+  document.getElementById('result').innerHTML = '';
+}
+function showMap() {
+  setActiveButton('btnMap');
+  document.getElementById('searchDiv').style.display = 'none';
+  document.getElementById('result').innerHTML = "<div id='map'></div>";
+  initMap();
+}
