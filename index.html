@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地理系お助けサイト</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  display:flex;
+  background:#f4f4f4;
+}
+
+#sidebar{
+  width:230px;
+  background:#1e1e1e;
+  color:white;
+  padding:20px;
+  height:100vh;
+}
+
+#sidebar h2{
+  margin-top:0;
+}
+
+#sidebar button{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  background:#333;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+}
+
+#sidebar button:hover{
+  background:#555;
+}
+
+#content{
+  flex:1;
+  padding:20px;
+}
+
+#map{
+  height:500px;
+  width:100%;
+  margin-top:20px;
+}
+
+img.flag{
+  width:60px;
+  vertical-align:middle;
+}
+
+input{
+  padding:8px;
+  font-size:16px;
+}
+
+button.search{
+  padding:8px 15px;
+  font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="sidebar">
+  <h2>地理系お助けサイト</h2>
+  <button onclick="randomCountry()">🌍 ランダム国</button>
+  <button onclick="randomRegion()">🌎 ランダム州・県</button>
+  <button onclick="showSearch()">🔎 国検索</button>
+  <button onclick="showMap()">🗺 地図モード</button>
+</div>
+
+<div id="content">
+  <h1>地理系お助けサイト</h1>
+  <p>YouTube公開用 日本向け版</p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
