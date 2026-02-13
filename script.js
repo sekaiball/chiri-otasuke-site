@@ -1,18 +1,102 @@
-// ===============================
-// 地理系お助けサイト 完全版
-// アメリカ本土優先検索対応
-// ===============================
+// =============================
+// 地理系お助けサイト ULTIMATE
+// =============================
 
-// ===== 日本語正規化 =====
+let map = null;
+let currentMarker = null;
+let allCountries = [];
+
+// -----------------------------
+// 日本語正規化
+// -----------------------------
 function normalizeText(text) {
   return text.toLowerCase().replace(/[ぁ-ん]/g, s =>
     String.fromCharCode(s.charCodeAt(0) + 0x60)
   );
 }
 
-// ===============================
+// -----------------------------
+// API事前取得（高速化）
+// -----------------------------
+async function loadCountries() {
+  const res = await fetch("https://restcountries.com/v3.1/all");
+  allCountries = await res.json();
+}
+loadCountries();
+
+// -----------------------------
+// 地図表示
+// -----------------------------
+function showMap() {
+  document.getElementById("searchDiv").style.display = "none";
+  removeMap();
+
+  document.getElementById("result").innerHTML =
+    "<div id='map'></div>";
+
+  map = L.map("map").setView([20, 0], 2);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
+
+  map.on("click", function(e) {
+    showCoordinates(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+// -----------------------------
+function removeMap() {
+  if (map) {
+    map.remove();
+    map = null;
+  }
+  currentMarker = null;
+}
+
+// -----------------------------
+// 座標表示
+// -----------------------------
+function showCoordinates(lat, lng) {
+  document.getElementById("infoBar").innerText =
+    `緯度: ${lat.toFixed(4)} / 経度: ${lng.toFixed(4)}`;
+}
+
+// -----------------------------
+// 現在地取得
+// -----------------------------
+function getLocation() {
+  if (!navigator.geolocation) {
+    alert("位置情報未対応");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    showMap();
+    map.setView([pos.coords.latitude, pos.coords.longitude], 6);
+
+    currentMarker = L.marker([
+      pos.coords.latitude,
+      pos.coords.longitude
+    ]).addTo(map)
+      .bindPopup("現在地")
+      .openPopup();
+  });
+}
+
+// -----------------------------
+// ランダム国（独立国限定）
+// -----------------------------
+function randomCountry() {
+  removeMap();
+  const independent = allCountries.filter(c => c.independent);
+  const country = independent[Math.floor(Math.random() * independent.length)];
+  displayCountry(country);
+}
+
+// -----------------------------
 // 日本47都道府県
-// ===============================
+// -----------------------------
 const japanPrefectures = [
   "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
   "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
@@ -24,136 +108,80 @@ const japanPrefectures = [
   "福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"
 ];
 
-// ===============================
-// ランダム都道府県
-// ===============================
 function randomPrefecture() {
-  const random = japanPrefectures[Math.floor(Math.random() * japanPrefectures.length)];
+  removeMap();
+  const random = japanPrefectures[Math.floor(Math.random()*47)];
   document.getElementById("result").innerHTML = `<h2>${random}</h2>`;
 }
 
-// ===============================
-// ランダム国
-// ===============================
-async function randomCountry() {
-  try {
-    const res = await fetch(
-      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags,independent"
-    );
-    if (!res.ok) throw new Error("API取得失敗");
-    const data = await res.json();
+// -----------------------------
+// 国検索
+// -----------------------------
+function showSearch() {
+  removeMap();
+  document.getElementById("searchDiv").style.display = "block";
+  document.getElementById("result").innerHTML = "";
+}
 
-    // 独立国だけ抽出してランダム
-    const independentCountries = data.filter(c => c.independent);
-    const country = independentCountries[Math.floor(Math.random() * independentCountries.length)];
-    displayCountry(country);
-  } catch (err) {
-    document.getElementById("result").innerHTML = "<p>国データ取得失敗</p>";
-    console.error(err);
+function searchCountry() {
+  const input = normalizeText(document.getElementById("searchInput").value);
+
+  let found = allCountries.find(c => {
+    const jp = normalizeText(c.translations?.jpn?.common || "");
+    const en = normalizeText(c.name?.common || "");
+    return c.independent && (jp === input || en === input);
+  });
+
+  if (!found) {
+    found = allCountries.find(c => {
+      const jp = normalizeText(c.translations?.jpn?.common || "");
+      const en = normalizeText(c.name?.common || "");
+      return jp.includes(input) || en.includes(input);
+    });
+  }
+
+  if (found) {
+    displayCountry(found);
+    zoomToCountry(found);
+  } else {
+    document.getElementById("result").innerHTML =
+      "<p>国が見つかりませんでした</p>";
   }
 }
 
-// ===============================
-// 国情報表示
-// ===============================
+// -----------------------------
+// 国表示
+// -----------------------------
 function displayCountry(country) {
-  if (!country) {
-    document.getElementById("result").innerHTML = "<p>データが見つかりません。</p>";
-    return;
-  }
+  removeMap();
 
-  const nameJP = country.translations?.jpn?.common || country.name?.common || "不明";
-  const official = country.name?.official || "不明";
-  const area = country.area ? country.area.toLocaleString() : "不明";
-  const population = country.population ? country.population.toLocaleString() : "不明";
-  const currency = Object.values(country.currencies || {})[0]?.name || "不明";
-  const flag = country.flags?.svg || country.flags?.png || "";
+  const nameJP = country.translations?.jpn?.common || country.name.common;
+  const flag = country.flags?.svg;
 
   document.getElementById("result").innerHTML = `
     <div class="country-card">
-      <img src="${flag}" alt="flag">
+      <img src="${flag}">
       <h2>${nameJP}</h2>
-      <p><strong>正式名:</strong> ${official}</p>
-      <p><strong>面積:</strong> ${area} km²</p>
-      <p><strong>人口:</strong> ${population}</p>
-      <p><strong>通貨:</strong> ${currency}</p>
+      <p>人口: ${country.population.toLocaleString()}</p>
+      <p>面積: ${country.area.toLocaleString()} km²</p>
+      <p>首都: ${country.capital}</p>
     </div>
   `;
 }
 
-// ===============================
-// 国検索（日本語対応＋旧国対応）
-// ===============================
-async function searchCountry() {
-  const input = document.getElementById("searchInput").value;
-  const normalized = normalizeText(input);
+// -----------------------------
+// 国へ自動ズーム
+// -----------------------------
+function zoomToCountry(country) {
+  showMap();
 
-  try {
-    const res = await fetch(
-      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags,independent"
-    );
-    if (!res.ok) throw new Error("API取得失敗");
-    const data = await res.json();
+  const latlng = country.latlng;
+  if (!latlng) return;
 
-    // 独立国を優先して検索
-    let found = data.find(c => {
-      const jp = normalizeText(c.translations?.jpn?.common || "");
-      const en = normalizeText(c.name?.common || "");
-      return c.independent && (jp === normalized || en === normalized);
-    });
+  map.setView(latlng, 5);
 
-    // 独立国が見つからなければ準州なども検索
-    if (!found) {
-      found = data.find(c => {
-        const jp = normalizeText(c.translations?.jpn?.common || "");
-        const en = normalizeText(c.name?.common || "");
-        return jp.includes(normalized) || en.includes(normalized);
-      });
-    }
-
-    if (found) {
-      displayCountry(found);
-    } else {
-      document.getElementById("result").innerHTML = "<p>国が見つかりませんでした</p>";
-    }
-  } catch (err) {
-    document.getElementById("result").innerHTML = "<p>検索中にエラー発生</p>";
-    console.error(err);
-  }
-}
-
-// ===============================
-// サイドバーボタン切替
-// ===============================
-function setActiveButton(btnId) {
-  document.querySelectorAll('#sidebar button').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(btnId).classList.add('active');
-}
-
-// ===============================
-// 地図初期化
-// ===============================
-let map;
-function initMap() {
-  if (map) return;
-  map = L.map('map').setView([20, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-}
-
-// ===============================
-// モード切替
-// ===============================
-function randomRegion() { setActiveButton('btnRandomCountry'); randomCountry(); }
-function showSearch() {
-  setActiveButton('btnSearch');
-  document.getElementById('searchDiv').style.display = 'block';
-  document.getElementById('result').innerHTML = '';
-}
-function showMap() {
-  setActiveButton('btnMap');
-  document.getElementById('searchDiv').style.display = 'none';
-  document.getElementById('result').innerHTML = "<div id='map'></div>";
-  initMap();
+  currentMarker = L.marker(latlng)
+    .addTo(map)
+    .bindPopup(country.translations?.jpn?.common || country.name.common)
+    .openPopup();
 }

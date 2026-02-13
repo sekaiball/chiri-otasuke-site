@@ -2,23 +2,26 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>地理系お助けサイト</title>
+  <title>地理系お助けサイト Ultimate</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
 <div id="sidebar">
-  <button id="btnMap" class="active" onclick="showMap()">地図</button>
-  <button id="btnRandomCountry" onclick="randomCountry()">ランダム国</button>
-  <button id="btnRandomPrefecture" onclick="randomPrefecture()">ランダム都道府県</button>
-  <button id="btnSearch" onclick="showSearch()">国検索</button>
+  <button onclick="showMap()">🌍 地図</button>
+  <button onclick="randomCountry()">🎲 ランダム国</button>
+  <button onclick="randomPrefecture()">🗾 ランダム都道府県</button>
+  <button onclick="showSearch()">🔎 国検索</button>
+  <button onclick="getLocation()">📍 現在地</button>
 </div>
 
 <div id="main">
+  <div id="infoBar"></div>
   <div id="result"></div>
+
   <div id="searchDiv" style="display:none;margin-top:10px;">
-    <input type="text" id="searchInput" placeholder="国名または旧国を入力">
+    <input type="text" id="searchInput" placeholder="国名を入力（日本語OK）">
     <button onclick="searchCountry()">検索</button>
   </div>
 </div>
