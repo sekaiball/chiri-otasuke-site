@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>地理お助けツール Pro</title>
+<title>地理お助けツール 完全版</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -10,23 +10,25 @@
 <style>
 body{
     margin:0;
-    font-family:Arial;
+    font-family:Arial, sans-serif;
     background:#111;
     color:white;
     display:flex;
     height:100vh;
+    overflow:hidden;
 }
 
-/* 左モード */
+/* 左モード切替 */
 #sidebar{
-    width:220px;
+    width:230px;
     background:#1a1a1a;
     padding:15px;
     border-right:2px solid #333;
+    box-sizing:border-box;
 }
 
 #sidebar h2{
-    font-size:18px;
+    margin-top:0;
 }
 
 .modeBtn{
@@ -44,16 +46,17 @@ body{
     background:#333;
 }
 
-/* 右操作 */
+/* 右 */
 #main{
     flex:1;
-    padding:20px;
     display:flex;
     flex-direction:column;
+    padding:15px;
+    box-sizing:border-box;
 }
 
 #controls{
-    margin-bottom:15px;
+    margin-bottom:10px;
 }
 
 input,select,button{
@@ -65,13 +68,27 @@ button{
     cursor:pointer;
 }
 
-#map{
-    flex:1;
-    margin-top:10px;
+#result{
+    min-height:120px;
+}
+
+.countryItem{
+    cursor:pointer;
+    padding:6px;
+    border-bottom:1px solid #333;
+}
+
+.countryItem:hover{
+    background:#222;
 }
 
 #result img{
     width:150px;
+}
+
+#map{
+    flex:1;
+    margin-top:10px;
 }
 </style>
 </head>
@@ -83,7 +100,7 @@ button{
     <h2>モード切替</h2>
     <button class="modeBtn" onclick="setMode('country')">国検索</button>
     <button class="modeBtn" onclick="setMode('region')">地域検索</button>
-    <button class="modeBtn" onclick="setMode('japan')">日本改変</button>
+    <button class="modeBtn" onclick="setMode('japan')">日本地図改変</button>
 </div>
 
 <!-- 右 -->
@@ -102,6 +119,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'© OpenStreetMap'
 }).addTo(map);
 
+/* モード切替 */
 function setMode(mode){
 
     const controls = document.getElementById("controls");
@@ -111,7 +129,7 @@ function setMode(mode){
         controls.innerHTML = `
             <input type="text" id="countryInput" placeholder="国名を入力">
             <button onclick="searchCountry()">検索</button>
-            <button onclick="randomCountry()">ランダム</button>
+            <button onclick="randomCountry()">ランダム国</button>
         `;
     }
 
@@ -124,7 +142,7 @@ function setMode(mode){
                 <option value="Americas">アメリカ大陸</option>
                 <option value="Oceania">オセアニア</option>
             </select>
-            <button onclick="searchRegion()">表示</button>
+            <button onclick="searchRegion()">地域一覧表示</button>
         `;
     }
 
@@ -137,27 +155,82 @@ function setMode(mode){
 
 /* 国検索 */
 async function searchCountry(){
-    let name = document.getElementById("countryInput").value;
-    let res = await fetch(`https://restcountries.com/v3.1/name/${name}`);
-    let data = await res.json();
-    showCountry(data[0]);
+    let name = document.getElementById("countryInput").value.trim();
+    if(!name) return;
+
+    try{
+        let res = await fetch(`https://restcountries.com/v3.1/name/${name}`);
+        if(!res.ok) throw new Error();
+        let data = await res.json();
+        if(!Array.isArray(data) || !data[0]) throw new Error();
+
+        showCountry(data[0]);
+
+    }catch{
+        document.getElementById("result").innerHTML="❌ 国が見つかりません";
+    }
 }
 
 /* ランダム */
 async function randomCountry(){
-    let res = await fetch("https://restcountries.com/v3.1/all");
-    let data = await res.json();
-    let random = data[Math.floor(Math.random()*data.length)];
-    showCountry(random);
+    try{
+        let res = await fetch("https://restcountries.com/v3.1/all");
+        if(!res.ok) throw new Error();
+        let data = await res.json();
+        if(!Array.isArray(data)) throw new Error();
+
+        let random = data[Math.floor(Math.random()*data.length)];
+        showCountry(random);
+
+    }catch{
+        document.getElementById("result").innerHTML="❌ ランダム取得失敗";
+    }
 }
 
-/* 地域検索 */
+/* 地域検索（一覧表示） */
 async function searchRegion(){
+
     let region = document.getElementById("regionSelect").value;
-    let res = await fetch(`https://restcountries.com/v3.1/region/${region}`);
-    let data = await res.json();
-    let random = data[Math.floor(Math.random()*data.length)];
-    showCountry(random);
+
+    try{
+        let res = await fetch(`https://restcountries.com/v3.1/region/${region}`);
+        if(!res.ok) throw new Error();
+
+        let data = await res.json();
+        if(!Array.isArray(data) || data.length===0) throw new Error();
+
+        data.sort((a,b)=>a.name.common.localeCompare(b.name.common));
+
+        let html = `<h3>${region} の国一覧</h3>
+                    <div style="max-height:250px; overflow:auto;">`;
+
+        data.forEach(country=>{
+            html += `
+                <div class="countryItem" onclick="showCountryByCode('${country.cca3}')">
+                    ${country.name.common}
+                </div>
+            `;
+        });
+
+        html += "</div>";
+
+        document.getElementById("result").innerHTML = html;
+
+    }catch{
+        document.getElementById("result").innerHTML="❌ 地域取得失敗";
+    }
+}
+
+/* コードで再取得（安全表示） */
+async function showCountryByCode(code){
+    try{
+        let res = await fetch(`https://restcountries.com/v3.1/alpha/${code}`);
+        if(!res.ok) throw new Error();
+        let data = await res.json();
+        showCountry(data[0]);
+    }catch{
+        document.getElementById("result").innerHTML="❌ 国取得失敗";
+    }
 }
 
 /* 表示 */
@@ -167,10 +240,13 @@ function showCountry(country){
         map.removeLayer(marker);
     }
 
+    if(!country.latlng) return;
+
     let lat = country.latlng[0];
     let lng = country.latlng[1];
 
     map.setView([lat,lng],5);
+
     marker = L.marker([lat,lng]).addTo(map);
 
     document.getElementById("result").innerHTML = `
@@ -178,28 +254,32 @@ function showCountry(country){
         <img src="${country.flags.png}">
         <p>首都: ${country.capital ? country.capital[0] : "なし"}</p>
         <p>人口: ${country.population.toLocaleString()}</p>
+        <p>地域: ${country.region}</p>
     `;
 }
 
-/* 日本改変 */
+/* 日本強調 */
 function focusJapan(){
-    map.setView([36,138],6);
 
     if(marker){
         map.removeLayer(marker);
     }
 
-    marker = L.circle([36,138],{
+    map.setView([36.2,138.2],6);
+
+    marker = L.circle([36.2,138.2],{
         color:"red",
         fillColor:"red",
-        fillOpacity:0.5,
-        radius:500000
+        fillOpacity:0.4,
+        radius:600000
     }).addTo(map);
 
-    document.getElementById("result").innerHTML = "<h2>🇯🇵 日本強調表示モード</h2>";
+    document.getElementById("result").innerHTML = `
+        <h2>🇯🇵 日本強調表示モード</h2>
+    `;
 }
 
-/* 初期表示 */
+/* 初期 */
 setMode("country");
 
 </script>
