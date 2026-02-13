@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>地理ツール 安定版</title>
+<title>地理お助けツール 安定完全版</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -17,7 +17,7 @@ body{
     font-family:Arial;
 }
 #sidebar{
-    width:220px;
+    width:230px;
     background:#1a1a1a;
     padding:15px;
 }
@@ -29,6 +29,9 @@ body{
     border:none;
     color:white;
     cursor:pointer;
+}
+.modeBtn:hover{
+    background:#333;
 }
 #main{
     flex:1;
@@ -66,13 +69,32 @@ body{
 <script>
 
 let map = L.map('map').setView([20,0],2);
-let marker=null;
+let marker = null;
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-/* ISO国コード一覧（安定） */
 let countries=[];
 
+/* 日本語別名辞書 */
+const aliasMap = {
+    "アメリカ":"USA",
+    "米国":"USA",
+    "イギリス":"GBR",
+    "英国":"GBR",
+    "韓国":"KOR",
+    "北朝鮮":"PRK",
+    "ロシア":"RUS",
+    "中国":"CHN",
+    "ドイツ":"DEU",
+    "フランス":"FRA",
+    "日本":"JPN",
+    "インド":"IND",
+    "ブラジル":"BRA",
+    "カナダ":"CAN",
+    "オーストラリア":"AUS"
+};
+
+/* 世界銀行APIから取得 */
 async function loadCountries(){
     let res = await fetch("https://api.worldbank.org/v2/country?format=json&per_page=400");
     let data = await res.json();
@@ -80,7 +102,7 @@ async function loadCountries(){
 }
 loadCountries();
 
-/* モード */
+/* モード切替 */
 function setMode(mode){
 
     if(mode==="country"){
@@ -94,13 +116,8 @@ function setMode(mode){
     if(mode==="region"){
         document.getElementById("controls").innerHTML=`
             <select id="regionSelect">
-                <option>Africa</option>
-                <option>East Asia & Pacific</option>
-                <option>Europe & Central Asia</option>
-                <option>Latin America & Caribbean</option>
-                <option>Middle East & North Africa</option>
-                <option>South Asia</option>
-                <option>North America</option>
+                ${[...new Set(countries.map(c=>c.region.value))]
+                    .map(r=>`<option>${r}</option>`).join("")}
             </select>
             <button onclick="searchRegion()">表示</button>
         `;
@@ -112,9 +129,20 @@ function setMode(mode){
 /* 国検索 */
 function searchCountry(){
 
-    let name=document.getElementById("countryInput").value.toLowerCase();
+    let name = document.getElementById("countryInput").value.trim();
+    if(!name) return;
 
-    let found=countries.find(c=>c.name.toLowerCase().includes(name));
+    /* 別名チェック */
+    if(aliasMap[name]){
+        showCountryByCode(aliasMap[name]);
+        return;
+    }
+
+    /* 通常検索 */
+    let found = countries.find(c =>
+        c.name.toLowerCase().includes(name.toLowerCase())
+    );
+
     if(!found){
         document.getElementById("result").innerHTML="見つかりません";
         return;
@@ -125,14 +153,15 @@ function searchCountry(){
 
 /* ランダム */
 function randomCountry(){
+    if(countries.length===0) return;
     let random=countries[Math.floor(Math.random()*countries.length)];
     showCountry(random);
 }
 
 /* 地域検索 */
 function searchRegion(){
-    let region=document.getElementById("regionSelect").value;
 
+    let region=document.getElementById("regionSelect").value;
     let filtered=countries.filter(c=>c.region.value===region);
 
     let html="<div style='max-height:200px;overflow:auto'>";
@@ -144,9 +173,8 @@ function searchRegion(){
     document.getElementById("result").innerHTML=html;
 }
 
-/* 表示 */
+/* 国表示 */
 async function showCountry(country){
-
     showCountryByCode(country.id);
 }
 
