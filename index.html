@@ -1,32 +1,106 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>地理系お助けサイト Ultimate</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<meta charset="UTF-8">
+<title>地理お助けツール Ultimate</title>
+<style>
+body{
+  font-family:Arial;
+  text-align:center;
+  background:#111;
+  color:white;
+}
+input,button{
+  padding:10px;
+  margin:5px;
+  font-size:16px;
+}
+button{
+  cursor:pointer;
+}
+#map{
+  height:500px;
+  margin-top:20px;
+}
+img{
+  width:200px;
+  margin-top:10px;
+}
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
+
 <body>
 
-<div id="sidebar">
-  <button onclick="showMap()">🌍 地図</button>
-  <button onclick="randomCountry()">🎲 ランダム国</button>
-  <button onclick="randomPrefecture()">🗾 ランダム都道府県</button>
-  <button onclick="showSearch()">🔎 国検索</button>
-  <button onclick="getLocation()">📍 現在地</button>
-</div>
+<h1>🌍 地理お助けツール Ultimate</h1>
 
-<div id="main">
-  <div id="infoBar"></div>
-  <div id="result"></div>
+<input type="text" id="countryInput" placeholder="国名を入力（日本, USAなど）">
+<button onclick="searchCountry()">国検索</button>
+<button onclick="randomCountry()">ランダム国</button>
 
-  <div id="searchDiv" style="display:none;margin-top:10px;">
-    <input type="text" id="searchInput" placeholder="国名を入力（日本語OK）">
-    <button onclick="searchCountry()">検索</button>
-  </div>
-</div>
+<div id="result"></div>
+<div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="script.js"></script>
+<script>
+
+let map = L.map('map').setView([20,0],2);
+let marker = null;
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap'
+}).addTo(map);
+
+async function searchCountry(){
+
+    let name = document.getElementById("countryInput").value.trim();
+    if(!name) return;
+
+    try{
+        let res = await fetch(`https://restcountries.com/v3.1/name/${name}`);
+        if(!res.ok) throw new Error("取得失敗");
+        let data = await res.json();
+        showCountry(data[0]);
+    }catch(e){
+        document.getElementById("result").innerHTML="❌ 国が見つかりません";
+    }
+}
+
+async function randomCountry(){
+    try{
+        let res = await fetch("https://restcountries.com/v3.1/all");
+        let data = await res.json();
+        let random = data[Math.floor(Math.random()*data.length)];
+        showCountry(random);
+    }catch(e){
+        document.getElementById("result").innerHTML="❌ ランダム取得失敗";
+    }
+}
+
+function showCountry(country){
+
+    let lat = country.latlng[0];
+    let lng = country.latlng[1];
+
+    map.setView([lat,lng],5);
+
+    if(marker){
+        map.removeLayer(marker);
+    }
+
+    marker = L.marker([lat,lng]).addTo(map);
+
+    document.getElementById("result").innerHTML = `
+        <h2>${country.name.common}</h2>
+        <img src="${country.flags.png}">
+        <p>首都: ${country.capital ? country.capital[0] : "なし"}</p>
+        <p>人口: ${country.population.toLocaleString()}</p>
+        <p>地域: ${country.region}</p>
+    `;
+}
+
+</script>
+
 </body>
 </html>
