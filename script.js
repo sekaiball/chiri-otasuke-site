@@ -1,6 +1,6 @@
 // ===============================
 // 地理系お助けサイト 完全版
-// ランダム国・都道府県・国検索・地図表示対応
+// アメリカ本土優先検索対応
 // ===============================
 
 // ===== 日本語正規化 =====
@@ -38,11 +38,14 @@ function randomPrefecture() {
 async function randomCountry() {
   try {
     const res = await fetch(
-      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags"
+      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags,independent"
     );
     if (!res.ok) throw new Error("API取得失敗");
     const data = await res.json();
-    const country = data[Math.floor(Math.random() * data.length)];
+
+    // 独立国だけ抽出してランダム
+    const independentCountries = data.filter(c => c.independent);
+    const country = independentCountries[Math.floor(Math.random() * independentCountries.length)];
     displayCountry(country);
   } catch (err) {
     document.getElementById("result").innerHTML = "<p>国データ取得失敗</p>";
@@ -79,7 +82,7 @@ function displayCountry(country) {
 }
 
 // ===============================
-// 国検索（日本語対応）
+// 国検索（日本語対応＋旧国対応）
 // ===============================
 async function searchCountry() {
   const input = document.getElementById("searchInput").value;
@@ -87,16 +90,26 @@ async function searchCountry() {
 
   try {
     const res = await fetch(
-      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags"
+      "https://restcountries.com/v3.1/all?fields=name,translations,area,population,currencies,flags,independent"
     );
     if (!res.ok) throw new Error("API取得失敗");
     const data = await res.json();
 
-    const found = data.find(c => {
+    // 独立国を優先して検索
+    let found = data.find(c => {
       const jp = normalizeText(c.translations?.jpn?.common || "");
       const en = normalizeText(c.name?.common || "");
-      return jp.includes(normalized) || en.includes(normalized);
+      return c.independent && (jp === normalized || en === normalized);
     });
+
+    // 独立国が見つからなければ準州なども検索
+    if (!found) {
+      found = data.find(c => {
+        const jp = normalizeText(c.translations?.jpn?.common || "");
+        const en = normalizeText(c.name?.common || "");
+        return jp.includes(normalized) || en.includes(normalized);
+      });
+    }
 
     if (found) {
       displayCountry(found);
@@ -122,7 +135,7 @@ function setActiveButton(btnId) {
 // ===============================
 let map;
 function initMap() {
-  if (map) return; // 既に初期化済みなら何もしない
+  if (map) return;
   map = L.map('map').setView([20, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
